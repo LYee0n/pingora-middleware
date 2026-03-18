@@ -1,0 +1,51 @@
+services:
+  # ── Pingora middleware ────────────────────────────────────────────────────────
+  pingora:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    ports:
+      - "6191:6191"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      REDIS_URL: redis://redis:6379/
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-100}
+      RATE_LIMIT_WINDOW_S: ${RATE_LIMIT_WINDOW_S:-60}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-token}
+      RUST_LOG: ${RUST_LOG:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dmz
+      - intranet
+    restart: unless-stopped
+
+  # ── Redis (rate limit store) ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+    networks:
+      - dmz
+    restart: unless-stopped
+
+  # ── Mock business service (echo server for local dev) ─────────────────────────
+  mock-service:
+    image: ealen/echo-server:latest
+    environment:
+      PORT: 8080
+    networks:
+      - intranet
+    restart: unless-stopped
+
+networks:
+  dmz:
+    driver: bridge
+  intranet:
+    driver: bridge
+    internal: true   # no external access — mirrors the real intranet boundary

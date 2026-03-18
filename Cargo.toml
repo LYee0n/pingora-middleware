@@ -1,0 +1,33 @@
+[package]
+name = "pingora-middleware"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pingora_middleware"
+path = "src/lib.rs"
+
+[[bin]]
+name = "proxy"
+path = "src/main.rs"
+
+[dependencies]
+pingora = { version = "0.5", features = ["lb"] }
+pingora-core = "0.5"
+pingora-http = "0.5"
+pingora-proxy = "0.5"
+pingora-load-balancing = "0.5"
+
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+# env-filter feature required for EnvFilter and with_env_filter
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+jsonwebtoken = "9"
+redis = { version = "0.25", features = ["tokio-comp"] }
+uuid = { version = "1", features = ["v4"] }
+bytes = "1"
+http = "1"
