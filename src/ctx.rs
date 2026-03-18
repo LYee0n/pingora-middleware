@@ -1,25 +1,20 @@
-/// Per-request context, threaded through every Pingora hook.
-///
-/// Pingora calls request_filter → upstream_peer → upstream_request_filter →
-/// response_filter → logging in order. Use this struct to carry state between
-/// those stages without global locks.
+use crate::oauth2::VerifiedClaims;
+
+/// Per-request context threaded through every Pingora hook.
 #[derive(Default, Debug)]
 pub struct RequestCtx {
-    /// Distributed trace ID, injected into upstream as X-Trace-Id
+    /// Distributed trace ID injected into upstream as traceparent
     pub trace_id: String,
-
-    /// Validated user identity extracted from JWT
-    pub user_id: Option<String>,
-    pub user_roles: Vec<String>,
-
+    /// Validated identity from OAuth2/OIDC
+    pub claims: Option<VerifiedClaims>,
     /// Which upstream instance was selected (for logging)
     pub upstream_addr: Option<String>,
-
-    /// Timestamp the request entered Pingora (for latency metrics)
+    /// Timestamp the request entered Pingora (nanoseconds)
     pub start_ns: u64,
-
     /// Whether this request was rate-limited and short-circuited
     pub rate_limited: bool,
+    /// OAuth2 error code if auth failed (for structured logging)
+    pub auth_error: Option<String>,
 }
 
 impl RequestCtx {
@@ -31,10 +26,13 @@ impl RequestCtx {
         }
     }
 
-    /// Latency in milliseconds since the request arrived
     pub fn elapsed_ms(&self) -> f64 {
         let elapsed = current_ns().saturating_sub(self.start_ns);
         elapsed as f64 / 1_000_000.0
+    }
+
+    pub fn user_id(&self) -> Option<&str> {
+        self.claims.as_ref().map(|c| c.sub.as_str())
     }
 }
 

@@ -19,5 +19,14 @@ requests = 100
 window_secs = 60
 fail_open = true
 
+[oauth2]
+strategy = "jwks"           # jwks | introspect | discovery
+clock_skew_secs = 60
+jwks_refresh_secs = 3600
+required_scopes = ["api:read"]
+
 [auth]
-algorithm = "HS256"
+acl = [
+  { path_prefix = "/api/admin",    roles = ["admin"] },
+  { path_prefix = "/api/internal", roles = ["service", "admin"] },
+]
